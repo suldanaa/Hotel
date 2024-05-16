@@ -35,13 +35,9 @@ int total_rev;
 const int TOTAL_ROOMS = 112;
 const int SIZE = 4;
 const int COURTYARD_MIN_ROOMNUM = 101;
-const int COURTYARD_MAX_ROOMNUM = 170;
 const int SCENIC_MIN_ROOMNUM = 201;
-const int SCENIC_MAX_ROOMNUM = 235;
 const int SUITE_MIN_ROOMNUM = 236;
-const int SUITE_MAX_ROOMNUM = 250;
 const int PENTHOUSE_MIN_ROOMNUM = 301;
-const int PENTHOUSE_MAX_ROOMNUM = 302;
 const int COURTYARD_AMNT = 70;
 const int SCENIC_AMNT =35;
 const int SUITE_AMNT =15;
@@ -49,12 +45,10 @@ const int PENT_AMNT = 2;
 
 int name_Iterator=0;
 int name_Room_Iterator=0;
-int fileToOrderIterator=0;
 
 Rooms* allRooms[SIZE];
-string names[SIZE];
+string names[TOTAL_ROOMS];
 map<int,string> roomToNames;
-map<string,int> fileToOrder;
 void saveToFile(string);
 int courtyardRoomNums[COURTYARD_AMNT];
 int scenicRoomNums[SCENIC_AMNT];
@@ -157,6 +151,7 @@ void mainMenu(){
         case 6: reset();
         break;
         default: error();
+        mainMenu();
         break;
     }
 }
@@ -220,7 +215,6 @@ void menuOption1(){
         suiteIterator++;
         break;
 
-
         case 4: 
         amountCheck(Penthouse);
         Hotel.setTotalRev(Hotel.getTotalRev()+Penthouse.getPrice());
@@ -233,10 +227,10 @@ void menuOption1(){
         break;
 
         default: error();
+        break;
     }
     }
     while(roomSelect!=5);
-    
     
 }
 void menuOption2(){
@@ -294,16 +288,6 @@ void menuOption4(){
     spacer();
     cout<< "BOOKING LIST: " << endl;
     string fileDate = removeDelimiter(date,delimiter) + ".txt";
-    fileToOrder.insert(pair<string,int>(fileDate,fileToOrderIterator));
-    fileToOrderIterator++;
-
-    map<string,int>::iterator it= fileToOrder.begin();
-    while (it != fileToOrder.end()) {
-        cout << "Date: " << it->first
-             << ", Number: " << it->second << endl;
-        ++it;
-    }   
-
     saveToFile(fileDate);
     mainMenu();
 }
@@ -315,20 +299,16 @@ void menuOption5(){
     cin >> searchDateRaw;
     string searchDate = removeDelimiter(searchDateRaw,delimiter);
     string searchDateFile = removeDelimiter(searchDate,delimiter) + ".txt";
-
-    map<string, int>::iterator it; 
-    it = fileToOrder.find(searchDateFile); 
-    if(it == fileToOrder.end()) 
-        cout << "Key-value pair not present in map" ; 
-    else{
-        cout << it->first << "->" << it->second ; 
-              string myText;
-            ifstream MyReadFile(it->first);
-            while (getline (MyReadFile, myText)) {
-            cout << myText << endl;
-            }
-            MyReadFile.close();
+    spacer();
+    string myText;
+    ifstream MyReadFile(searchDateFile);
+    if (MyReadFile.fail()){
+        cout << "No data stored for selected day." << endl;
     }
+    while (getline (MyReadFile, myText)) {
+    cout << myText << endl;
+    }
+    MyReadFile.close();
     mainMenu();
 }
 
@@ -395,6 +375,8 @@ void reset(){
     penthouseIterator = 0;
     nameIterator = 0;
     roomToNames.clear();
+    
+
     datePrompt();
     cin >> date;
     mainMenu();
