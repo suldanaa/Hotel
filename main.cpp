@@ -1,8 +1,10 @@
 //working on 1 day (maybe incorporate time() function)
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include <string>
 #include <map>
+#include <vector>
 using namespace std;
 #include "hotel.cpp"
 
@@ -14,19 +16,21 @@ void spacer();
 void confirmationMsg(Rooms &r);
 void error();
 void namePrompt();
+void datePrompt();
 
 void menuOption1();
 void menuOption2();
 void menuOption3();
 void menuOption4();
 void menuOption5();
-void roomOption1();
+void reset();
 
 // **** ROOM NUMBER DETERMINING FUNCTIONS ****
 void amountCheck(Rooms &r);
 
 string date;
-char deliminator = '/';
+char delimiter = '/';
+string removeDelimiter(string, char);
 int total_rev;
 const int TOTAL_ROOMS = 112;
 const int SIZE = 4;
@@ -45,10 +49,13 @@ const int PENT_AMNT = 2;
 
 int name_Iterator=0;
 int name_Room_Iterator=0;
+int fileToOrderIterator=0;
 
 Rooms* allRooms[SIZE];
 string names[SIZE];
 map<int,string> roomToNames;
+map<string,int> fileToOrder;
+void saveToFile(string);
 int courtyardRoomNums[COURTYARD_AMNT];
 int scenicRoomNums[SCENIC_AMNT];
 int suiteRoomNums[SUITE_AMNT];
@@ -113,11 +120,8 @@ int main(){
     cout << "*\tWelcome to " << Hotel.getName() << "       *" << endl;
     banner(45);
 
-    //Ask for today's date
-    cout << "\nPlease enter today's date (MM/DD/YYYY)" << endl;
-    cout << ">> ";
+    datePrompt();
     cin >> date;
-
     //produce menu
     mainMenu();
     return 0;
@@ -135,6 +139,7 @@ void mainMenu(){
     cout << "3. Total Daily Revenue" << endl;
     cout << "4. End of Day Report" << endl;
     cout << "5. Any Day Report" << endl;
+    cout << "6. New Day" << endl;
     cout << "Make selection: ";
     cin >> menuSelect;
     
@@ -149,7 +154,10 @@ void mainMenu(){
         break;
         case 5: menuOption5();
         break;
+        case 6: reset();
+        break;
         default: error();
+        break;
     }
 }
 
@@ -231,7 +239,6 @@ void menuOption1(){
     
     
 }
-
 void menuOption2(){
     spacer();
     banner(38);
@@ -247,7 +254,6 @@ void menuOption2(){
     mainMenu();
 
 }
-
 void menuOption3(){
 
     spacer();
@@ -261,10 +267,7 @@ void menuOption3(){
     
 
 }
-
 void menuOption4(){
-
-
     spacer();
     banner(35);
     cout << "*\tMENU > EoD_REPORT\t*" << endl;
@@ -288,55 +291,45 @@ void menuOption4(){
         }   
     }
 
-
     spacer();
     cout<< "BOOKING LIST: " << endl;
-    string fileDate = date + ".txt";
-    ofstream MyFile(fileDate);
-    MyFile << "-----------------------------------\n";
-    MyFile << "*\tMENU > EoD_REPORT\t*" << endl;
-    MyFile << "*\tDATE: " << date << "\t*" << endl;
-    MyFile << "-----------------------------------\n";
-    MyFile << "TOTAL REVENUE: $" << Hotel.getTotalRev() << endl;
-    MyFile << endl;
-    MyFile << "ROOMS COMPLETELY BOOKED:" << endl;
-    for(int x=0; x<SIZE;x++){
-    if(allRooms[x]->getAmount()==0){
-        MyFile << allRooms[x]->getName() << " - " << allRooms[x]->getAmount() << " - " << "$" << allRooms[x]->getPrice() << " a night" << endl;
-        }   
-    }
-    MyFile << endl;
-    MyFile << "AVAILABLE ROOMS LEFT: " << endl;
-    for(int x=0; x<SIZE;x++){
-    if(allRooms[x]->getAmount()!=0){
-        MyFile << allRooms[x]->getName() << " - " << allRooms[x]->getAmount() << " - " << "$" << allRooms[x]->getPrice() << " a night" << endl;
-        }   
-    }
-    MyFile << endl;
-    MyFile << "BOOKING LIST: " << endl;
-    map<int,string>::iterator it= roomToNames.begin();
+    string fileDate = removeDelimiter(date,delimiter) + ".txt";
+    fileToOrder.insert(pair<string,int>(fileDate,fileToOrderIterator));
+    fileToOrderIterator++;
 
-    while (it != roomToNames.end()) {
-        cout << "Room Number: " << it->first
-             << ", Guest Name: " << it->second << endl;
-      MyFile << "Room Number: " << it->first
-             << ", Guest Name: " << it->second << endl;
+    map<string,int>::iterator it= fileToOrder.begin();
+    while (it != fileToOrder.end()) {
+        cout << "Date: " << it->first
+             << ", Number: " << it->second << endl;
         ++it;
     }   
-    MyFile.close();
 
+    saveToFile(fileDate);
     mainMenu();
-
 }
 
 void menuOption5(){
-    //need to work on this
-    string myText;
-    ifstream MyReadFile("fileDate");
-    while (getline (MyReadFile, myText)) {
-    cout << myText << endl;
+    string searchDateRaw;
+    spacer();
+    cout << "Enter a date (MM/DD/YYYY): ";
+    cin >> searchDateRaw;
+    string searchDate = removeDelimiter(searchDateRaw,delimiter);
+    string searchDateFile = removeDelimiter(searchDate,delimiter) + ".txt";
+
+    map<string, int>::iterator it; 
+    it = fileToOrder.find(searchDateFile); 
+    if(it == fileToOrder.end()) 
+        cout << "Key-value pair not present in map" ; 
+    else{
+        cout << it->first << "->" << it->second ; 
+              string myText;
+            ifstream MyReadFile(it->first);
+            while (getline (MyReadFile, myText)) {
+            cout << myText << endl;
+            }
+            MyReadFile.close();
     }
-    MyReadFile.close();
+    mainMenu();
 }
 
 void spacer(){
@@ -376,7 +369,6 @@ void confirmationMsg(Rooms &r){
 void error(){
     cout << "Invalid response. Please retry." << endl;
 }
-
 void amountCheck(Rooms &r){
     if(r.getAmount()!=0){
         r.setAmount(r.getAmount()-1);
@@ -386,8 +378,66 @@ void amountCheck(Rooms &r){
         cout << "No rooms available." << endl;
     }
 }
-
 void namePrompt(){
+
     cout << "Enter name of guest: ";
     
+}
+void reset(){
+    Hotel.setTotalRev(0);
+    Courtyard.setAmount(COURTYARD_AMNT);
+    Scenic.setAmount(SCENIC_AMNT);
+    Deluxe_Suite.setAmount(SUITE_AMNT);
+    Penthouse.setAmount(PENT_AMNT);
+    courtyardIterator = 0;
+    scenicIterator = 0;
+    suiteIterator = 0;
+    penthouseIterator = 0;
+    nameIterator = 0;
+    roomToNames.clear();
+    datePrompt();
+    cin >> date;
+    mainMenu();
+}
+void datePrompt(){
+    cout << "\nPlease enter today's date (MM/DD/YYYY)" << endl;
+    cout << ">> ";
+}
+void saveToFile(string fileDate){
+    ofstream MyFile(fileDate);
+    MyFile << "-----------------------------------\n";
+    MyFile << "*\tMENU > EoD_REPORT\t*" << endl;
+    MyFile << "*\tDATE: " << date << "\t*" << endl;
+    MyFile << "-----------------------------------\n";
+    MyFile << "TOTAL REVENUE: $" << Hotel.getTotalRev() << endl;
+    MyFile << endl;
+    MyFile << "ROOMS COMPLETELY BOOKED:" << endl;
+    for(int x=0; x<SIZE;x++){
+    if(allRooms[x]->getAmount()==0){
+        MyFile << allRooms[x]->getName() << " - " << allRooms[x]->getAmount() << " - " << "$" << allRooms[x]->getPrice() << " a night" << endl;
+        }   
+    }
+    MyFile << endl;
+    MyFile << "AVAILABLE ROOMS LEFT: " << endl;
+    for(int x=0; x<SIZE;x++){
+    if(allRooms[x]->getAmount()!=0){
+        MyFile << allRooms[x]->getName() << " - " << allRooms[x]->getAmount() << " - " << "$" << allRooms[x]->getPrice() << " a night" << endl;
+        }   
+    }
+    MyFile << endl;
+    MyFile << "BOOKING LIST: " << endl;
+    map<int,string>::iterator it= roomToNames.begin();
+
+    while (it != roomToNames.end()) {
+        cout << "Room Number: " << it->first
+             << ", Guest Name: " << it->second << endl;
+      MyFile << "Room Number: " << it->first
+             << ", Guest Name: " << it->second << endl;
+        ++it;
+    }   
+    MyFile.close();
+}
+string removeDelimiter(string date, char delimiter){
+date.erase(remove(date.begin(), date.end(), delimiter), date.end());
+return date;
 }
